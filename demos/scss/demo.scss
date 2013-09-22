@@ -50,6 +50,10 @@ $retina-sprite-spacing: 10px;
   @include retina-sprite(signIn, buttons);
 }
 
+.myScaledButton {
+  @include retina-sprite(signIn, buttons, $hover: true, $active: true, $scale: 0.5);
+}
+
 .myOtherButton {
   @include retina-background(arrow-right, center right no-repeat);
 }

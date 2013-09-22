@@ -31,9 +31,14 @@ $retina-sprite-urls2x    : 0;
  * @param {Boolean} [$hover=false]
  * @param {Boolean} [$active=false]
  */
-@mixin retina-sprite($name, $sprite-name: 0, $hover: false, $active: false) {
+@mixin retina-sprite($name, $sprite-name: 0, $hover: false, $active: false, $scale: 1) {
   $index: 2;
   $len: length($retina-sprite-names);
+
+  @if unit($scale) == "%" {
+    // Convert $scale to a scalar if we were passed a percentage
+    $scale: $scale / 100%;
+  }
 
   @for $i from $index through $len {
     @if $sprite-name == nth($retina-sprite-names, $i) {
@@ -47,7 +52,7 @@ $retina-sprite-urls2x    : 0;
   $sprite2x     : nth($retina-sprite-sprites2x, $index);
   $sprite-url2x : nth($retina-sprite-urls2x, $index);
 
-  @include _retina-sprite($name, $sprite, $sprite-url, $sprite2x, $sprite-url2x, $hover, $active);
+  @include _retina-sprite($name, $sprite, $sprite-url, $sprite2x, $sprite-url2x, $hover, $active, $scale);
 }
 
 
@@ -69,9 +74,16 @@ $retina-sprite-urls2x    : 0;
   $retina-sprite-urls2x    : append($retina-sprite-urls2x, sprite-url($sprite2x));
 }
 
-@mixin _retina-sprite-bg-pos($sprite, $name, $pad, $multiplier: 1) {
-  $pos: sprite-position($sprite, $name, -$pad * $multiplier, -$pad * $multiplier);
-  background-position: nth($pos, 1) nth($pos, 2) / $multiplier;
+@mixin _retina-sprite-bg-size($sprite, $multiplier: 1, $scale: 1) {
+  $spritePath: sprite-path($sprite);
+  $spriteWidth: image-width($spritePath);
+  $spriteHeight: image-height($spritePath);
+  @include background-size(ceil($spriteWidth * $scale) / $multiplier ceil($spriteHeight * $scale) / $multiplier);
+}
+
+@mixin _retina-sprite-bg-pos($sprite, $name, $pad, $multiplier: 1, $scale: 1) {
+  $paddingOffset: -$pad * $multiplier;
+  background-position: $paddingOffset ((floor(nth(sprite-position($sprite, $name), 2) * $scale) / $multiplier) + $paddingOffset);
 }
 
 
@@ -85,23 +97,27 @@ $retina-sprite-urls2x    : 0;
 //    if `pad` is non-zero, then that's how much padding the element will have (requires
 //    $spacing on the sprite maps). Great for iPhone interfaces to make hit areas bigger.
 //
-@mixin _retina-sprite($name, $sprite, $sprite-url, $sprite2x, $sprite-url2x, $hover, $active, $dimensions: true, $pad: 0) {
+@mixin _retina-sprite($name, $sprite, $sprite-url, $sprite2x, $sprite-url2x, $hover, $active, $scale: 100%, $dimensions: true, $pad: 0) {
   display: inline-block;
   
   background-image: $sprite-url;
-  @include _retina-sprite-bg-pos($sprite, $name, $pad);
+  @include _retina-sprite-bg-pos($sprite, $name, $pad, 1, $scale);
+  @include _retina-sprite-bg-size($sprite, 1, $scale);
 
   background-repeat: no-repeat;
 
   @if $dimensions == true {
-    @include sprite-dimensions($sprite, $name);
+    $width: image-width(sprite-file($sprite, $name));
+    $height: image-height(sprite-file($sprite, $name));
+    width: ceil($width * $scale);
+    height: ceil($height * $scale);
   }
 
   @if $hover == true {
-    &:hover  { @include _retina-sprite-bg-pos($sprite, $name + _hover, $pad); }
+    &:hover  { @include _retina-sprite-bg-pos($sprite, $name + _hover, $pad, 1, $scale); }
   }
   @if $active == true {
-    &:active { @include _retina-sprite-bg-pos($sprite, $name + _active, $pad); }
+    &:active { @include _retina-sprite-bg-pos($sprite, $name + _active, $pad, 1, $scale); }
   }
   
   @if $pad > 0 {
@@ -110,18 +126,18 @@ $retina-sprite-urls2x    : 0;
   
   @include retina {
     background-image: $sprite-url2x;
-    @include background-size(ceil(image-width(sprite-path($sprite2x)) / 2) auto);
+    @include _retina-sprite-bg-size($sprite2x, 2, $scale);
     //  sprite-path() returns the path of the generated sprite sheet, which
     //  image-width() calculates the width of. the ceil() is in place in case
     //  you have sprites that have an odd-number of pixels in width
 
-    @include _retina-sprite-bg-pos($sprite, $name, $pad, 2);
+    @include _retina-sprite-bg-pos($sprite2x, $name, $pad, 2, $scale);
     
     @if $hover == true {
-      &:hover  { @include _retina-sprite-bg-pos($sprite, $name + _hover, $pad, 2); }
+      &:hover  { @include _retina-sprite-bg-pos($sprite2x, $name + _hover, $pad, 2, $scale); }
     }
     @if $active == true {
-      &:active { @include _retina-sprite-bg-pos($sprite, $name + _active, $pad, 2); }
+      &:active { @include _retina-sprite-bg-pos($sprite2x, $name + _active, $pad, 2, $scale); }
     }
   }
 }
